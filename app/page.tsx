@@ -3,12 +3,26 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/lib/auth-context";
+import SignIn from "@/components/SignIn";
+import { db, auth } from "@/lib/firebase";
+import { collection, addDoc } from "firebase/firestore";
+import { getIdToken } from "firebase/auth";
 
 export default function Home() {
+  const { user, loading: authLoading } = useAuth();
   const [userImage, setUserImage] = useState<File | null>(null);
   const [clothingImage, setClothingImage] = useState<File | null>(null);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  if (authLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (!user) {
+    return <SignIn />;
+  }
 
   const handleGenerate = async () => {
     if (!userImage || !clothingImage) return;
@@ -19,12 +33,25 @@ export default function Home() {
     formData.append("clothingImage", clothingImage);
 
     try {
+      const token = await getIdToken(user);
       const response = await fetch("/api/generate", {
         method: "POST",
         body: formData,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       const data = await response.json();
       setResultImage(data.image);
+
+      // Save to Firestore
+      if (user && data.image) {
+        await addDoc(collection(db, "generations"), {
+          userId: user.uid,
+          imageUrl: data.image,
+          timestamp: new Date(),
+        });
+      }
     } catch (error) {
       console.error("Error generating image:", error);
     } finally {
