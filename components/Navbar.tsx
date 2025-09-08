@@ -28,6 +28,7 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-3">
+          <Link href="/chat" className="text-sm">Chat</Link>
           {user ? (
             <>
               <span className="text-sm text-muted-foreground">
