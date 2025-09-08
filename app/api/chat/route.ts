@@ -64,8 +64,25 @@ export async function POST(request: NextRequest) {
     // If model requested a function call
     const fnCall = result.functionCalls && result.functionCalls.length > 0 ? result.functionCalls[0] : null;
     if (!fnCall) {
-      // no tool requested; return plain text
-      return NextResponse.json({ modelText: result.text || '', products: [] });
+      // Model didn't request the amazon_search tool.
+      // As a pragmatic fallback, attempt to run the ScraperAPI search directly
+      // using the user's message so the UI can render product cards.
+      try {
+        const autoQuery = String(message || '').trim();
+        let autoProducts: any[] = [];
+        if (autoQuery) {
+          autoProducts = await callScraperApi(autoQuery, 6);
+        }
+
+        const displayText = (autoProducts && autoProducts.length > 0)
+          ? `Found ${autoProducts.length} items for "${autoQuery}" — see the product cards below and add any to your basket.`
+          : (result.text || '');
+
+        return NextResponse.json({ modelText: displayText, products: autoProducts });
+      } catch (err) {
+        console.error('auto ScraperAPI error', err);
+        return NextResponse.json({ modelText: result.text || '', products: [] });
+      }
     }
 
     // parse args (might be object or string)

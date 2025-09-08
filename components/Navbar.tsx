@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { useBasket } from "@/lib/basket-context";
 import { Button } from "@/components/ui/button";
 
 export default function Navbar() {
@@ -29,6 +30,7 @@ export default function Navbar() {
 
         <div className="flex items-center gap-3">
           <Link href="/chat" className="text-sm">Chat</Link>
+          <Link href="/basket" className="text-sm">Basket{` (${useBasket().items.length})`}</Link>
           {user ? (
             <>
               <span className="text-sm text-muted-foreground">
