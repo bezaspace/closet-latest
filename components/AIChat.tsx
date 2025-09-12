@@ -29,9 +29,25 @@ export default function AIChat() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: input }) });
+      // Convert messages to Gemini format for history. Include the current
+      // user message immediately so the server/model receives up-to-date context.
+      const history = [...messages, userMsg].map(m => ({
+        role: m.role === 'ai' ? 'model' : 'user',
+        parts: [{ text: m.text }]
+      }));
+
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: input, history })
+      });
       const data = await res.json();
-      const aiMsg: Message = { id: `a_${Date.now()}`, role: 'ai', text: data.modelText || '' , products: data.products || [] };
+      const aiMsg: Message = {
+        id: `a_${Date.now()}`,
+        role: 'ai',
+        text: data.modelText || '',
+        products: data.products || []
+      };
       setMessages((s) => [...s, aiMsg]);
     } catch (err) {
       setMessages((s) => [...s, { id: `a_err_${Date.now()}`, role: 'ai', text: 'Sorry — something went wrong.' }]);
